@@ -5,6 +5,9 @@ use std::option::Option::Some;
 use std::path::Path;
 use std::process::{Command, exit};
 
+use reqwest::{Client, Error, Response};
+#[cfg(unix)]
+use tar::Archive;
 use zip::ZipArchive;
 
 #[cfg(target_os = "windows")]
@@ -37,12 +40,21 @@ fn read_line() -> String {
     return tmp;
 }
 
+async fn get(client: &Client, str: &str) -> Result<Response, Error> {
+    return client.get(str)
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
+        .send()
+        .await;
+}
+
 #[tokio::main]
 async fn main() {
     println!("iTXTech MCL Installer v1.0.0 [OS: {}]", get_os());
     println!("Licensed under GNU AGPLv3.");
     println!("https://github.com/iTXTech/mcl-installer");
     println!();
+
+    let client = reqwest::Client::new();
 
     if Path::new("./java").exists() {
         println!("Existing Java Executable detected, skip download JRE.");
@@ -61,7 +73,7 @@ async fn main() {
         println!("Fetching file list for {} version {} on {}", jre, ver, arch);
 
         let url = format!("https://mirrors.tuna.tsinghua.edu.cn/AdoptOpenJDK/{}/{}/{}/{}/", ver, jre, arch, get_os());
-        let resp = reqwest::get(&url).await;
+        let resp = get(&client, &url).await;
         if !resp.is_ok() {
             println!("Fail to fetch AdoptOpenJDK download list.");
             exit(1);
@@ -75,7 +87,7 @@ async fn main() {
                 let archive = format!("{}{}", url, &line[sign.len()..end]);
                 println!("Start Downloading: {}", archive);
 
-                let mut res = reqwest::get(&archive).await.unwrap();
+                let mut res = get(&client, &archive).await.unwrap();
                 let ttl = res.headers().get(reqwest::header::CONTENT_LENGTH).unwrap().to_str().unwrap();
                 let total = str_to_int(ttl);
                 let mut current = 0;
@@ -94,35 +106,47 @@ async fn main() {
                 }
 
                 let mut java_dir = String::new();
-                if get_os() == "windows" { //zip
-                    let mut zip = ZipArchive::new(File::open("java.arc").unwrap()).unwrap();
 
-                    java_dir = format!("{}", zip.by_index(0).unwrap().name());
+                #[cfg(target_os = "windows")]
+                    { //zip
+                        let mut zip = ZipArchive::new(File::open("java.arc").unwrap()).unwrap();
 
-                    let len = zip.len();
-                    for i in 0..zip.len() {
-                        let mut file = zip.by_index(i).unwrap();
-                        let outpath = match file.enclosed_name() {
-                            Some(path) => path.to_owned(),
-                            None => continue,
-                        };
+                        java_dir = format!("{}", zip.by_index(0).unwrap().name());
 
-                        print!("\rExtracting [{}/{}]", i + 1, len);
-                        if (&*file.name()).ends_with('/') {
-                            fs::create_dir_all(&outpath).unwrap();
-                        } else {
-                            if let Some(p) = outpath.parent() {
-                                if !p.exists() {
-                                    fs::create_dir_all(&p).unwrap();
+                        let len = zip.len();
+                        for i in 0..zip.len() {
+                            let mut file = zip.by_index(i).unwrap();
+                            let outpath = match file.enclosed_name() {
+                                Some(path) => path.to_owned(),
+                                None => continue,
+                            };
+
+                            print!("\rExtracting [{}/{}]", i + 1, len);
+                            if (&*file.name()).ends_with('/') {
+                                fs::create_dir_all(&outpath).unwrap();
+                            } else {
+                                if let Some(p) = outpath.parent() {
+                                    if !p.exists() {
+                                        fs::create_dir_all(&p).unwrap();
+                                    }
                                 }
+                                let mut outfile = fs::File::create(&outpath).unwrap();
+                                io::copy(&mut file, &mut outfile).unwrap();
                             }
-                            let mut outfile = fs::File::create(&outpath).unwrap();
-                            io::copy(&mut file, &mut outfile).unwrap();
                         }
+                        println!();
                     }
-                    println!();
-                } else { //tar.gz
-                }
+
+                #[cfg(unix)]
+                    { //tar.gz
+                        let mut ar = Archive::new(File::open("java.arc").unwrap());
+                        ar.unpack(".");
+                        /*let dst = Path::new(".");
+                        for entry in ar.entries().unwrap() {
+                            let mut file = entry.unwrap();
+                            file.unpack_in(dst);
+                        }*/
+                    }
 
                 fs::remove_file("java.arc");
                 fs::rename(java_dir, "java");

@@ -1,10 +1,24 @@
 [package]
 name = "mcl-installer"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["PeratX <peratx@itxtech.org>"]
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 reqwest = { version = "0.11" }
 tokio = { version = "1", features = ["full"] }
 zip = "0.5"
+
+[target.'cfg(unix)'.dependencies]
+tar = "0.4"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[package.metadata.winres]
+OriginalFilename = "mcl-installer.exe"
+LegalCopyright = "Copyright © 2021 iTX Technologies"
+FileDescription = "Download OpenJDK and iTXTech Mirai Console Loader instantly."
+ProductName = "iTXTech MCL Installer"
+ProductVersion = "1.0.0.0"
