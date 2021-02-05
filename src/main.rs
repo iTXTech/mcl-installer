@@ -70,7 +70,7 @@ fn unzip(path: &str) -> String {
     let len = zip.len();
     for i in 0..zip.len() {
         let mut file = zip.by_index(i).unwrap();
-        let mut outpath = match file.enclosed_name() {
+        let outpath = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => continue,
         };
@@ -160,12 +160,12 @@ async fn main() {
                 download(&client, &archive, "java.arc").await;
 
                 let mut java_dir = String::new();
-                #[cfg(windows)]
+                #[cfg(target_os = "windows")]
                     { //zip
                         java_dir = unzip("java.arc");
                     }
 
-                #[cfg(unix)]
+                #[cfg(target_os = "linux")]
                     { //tar.gz
                         let mut process = Command::new("tar").arg("-zxvf").arg("java.arc")
                             .stdout(Stdio::piped())
@@ -187,6 +187,16 @@ async fn main() {
                         println!();
                     }
 
+                #[cfg(target_os = "macos")]
+                    {
+                        println!("Extracting Archive...");
+                        let mut process = Command::new("tar").arg("-zxf").arg("java.arc")
+                            .spawn().unwrap().wait().unwrap();
+                        let start = archive.find("hotspot_").unwrap();
+                        let end = archive.find(".tar.gz").unwrap();
+                        java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
+                    }
+
                 fs::remove_file("java.arc");
                 fs::rename(java_dir, "java");
 
@@ -195,14 +205,18 @@ async fn main() {
         }
     }
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
         {
             java = format!("{}\\bin\\java.exe", Path::new("java").canonicalize().unwrap().to_str().unwrap());
             java = format!("{}", &java[4..java.len()]);
         }
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
         {
             java = format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+        }
+    #[cfg(target_os = "macos")]
+        {
+            java = format!("{}/Contents/Home/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
         }
 
     println!("Testing Java Executable: {}", java);
