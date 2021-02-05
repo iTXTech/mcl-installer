@@ -5,14 +5,14 @@
 
 ## 下载
 
-1. 前往 [Release](https://github.com/iTXTech/mcl-installer/release) 选择对应操作系统和架构下载可执行文件
+1. 前往 [Release](https://github.com/iTXTech/mcl-installer/releases) 选择对应操作系统和架构下载可执行文件
 2. 运行 `mcl-installer`
 
 ## 使用帮助
 
 ### 选择可执行文件下载
 
-1. 在 [Release](https://github.com/iTXTech/mcl-installer/release) 页面选择对应操作系统和架构下载可执行文件
+1. 在 [Release](https://github.com/iTXTech/mcl-installer/releases) 页面选择对应操作系统和架构下载可执行文件
 2. 文件命名格式为 `mcl-installer-操作系统-架构`，例如`mcl-installer-windows-x86.exe`，`mcl-installer-linux-amd64`
    ，`mcl-installer-macos-amd64`等
 

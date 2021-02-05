@@ -1,13 +1,11 @@
 use std::fs;
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::option::Option::Some;
 use std::path::Path;
-use std::process::{Command, exit};
+use std::process::{Command, exit, Stdio};
 
 use reqwest::{Client, Error, Response};
-#[cfg(unix)]
-use tar::Archive;
 use zip::ZipArchive;
 
 #[cfg(target_os = "windows")]
@@ -80,11 +78,12 @@ async fn main() {
         }
         let text = resp.unwrap().text().await.unwrap();
         let lines = text.split("\n");
-        let sign = "<tr><td class=\"link\"><a href=\"";
+        let pack = format!("OpenJDK{}U-{}", ver, jre);
         for line in lines {
-            if line.starts_with(sign) && line.contains("hotspot") && (line.contains(".zip") || line.contains(".tar.gz")) {
+            if line.contains(&pack) && line.contains("hotspot") && (line.contains(".zip") || line.contains(".tar.gz")) {
+                let start = line.find(&pack).unwrap();
                 let end = line.find("\" title=\"").unwrap();
-                let archive = format!("{}{}", url, &line[sign.len()..end]);
+                let archive = format!("{}{}", url, &line[start..end]);
                 println!("Start Downloading: {}", archive);
 
                 let mut res = get(&client, &archive).await.unwrap();
@@ -107,7 +106,7 @@ async fn main() {
 
                 let mut java_dir = String::new();
 
-                #[cfg(target_os = "windows")]
+                #[cfg(windows)]
                     { //zip
                         let mut zip = ZipArchive::new(File::open("java.arc").unwrap()).unwrap();
 
@@ -121,7 +120,7 @@ async fn main() {
                                 None => continue,
                             };
 
-                            print!("\rExtracting [{}/{}]", i + 1, len);
+                            print!("\rExtracting [{}/{}] {}", i + 1, len, file.name());
                             if (&*file.name()).ends_with('/') {
                                 fs::create_dir_all(&outpath).unwrap();
                             } else {
@@ -139,19 +138,34 @@ async fn main() {
 
                 #[cfg(unix)]
                     { //tar.gz
-                        let mut ar = Archive::new(File::open("java.arc").unwrap());
-                        ar.unpack(".");
-                        /*let dst = Path::new(".");
-                        for entry in ar.entries().unwrap() {
-                            let mut file = entry.unwrap();
-                            file.unpack_in(dst);
-                        }*/
+                        let mut process = Command::new("tar").arg("-zxvf").arg("java.arc")
+                            .stdout(Stdio::piped())
+                            .spawn().unwrap();
+                        {
+                            let lines = BufReader::new(process.stdout.as_mut().unwrap()).lines();
+                            let mut j = false;
+                            for line in lines {
+                                let l = format!("{}", line.unwrap().trim());
+                                if !j {
+                                    let end = l.find("/").unwrap();
+                                    java_dir = format!("{}", &l[0..end]);
+                                    j = true;
+                                }
+                                print!("\rExtracting {}", l);
+                            }
+                        }
+                        process.wait().unwrap();
+                        println!();
                     }
 
                 fs::remove_file("java.arc");
                 fs::rename(java_dir, "java");
 
-                let java = "java/bin/java";
+                #[cfg(windows)]
+                    let java = format!("{}\\bin\\java.exe", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+                #[cfg(unix)]
+                    let java = format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+
                 println!("Testing Java Executable: {}", java);
 
                 Command::new(java).arg("-version").spawn().unwrap().wait();
