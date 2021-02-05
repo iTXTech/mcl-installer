@@ -1,11 +1,13 @@
+use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::option::Option::Some;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, exit, Stdio};
 
 use reqwest::{Client, Error, Response};
+use serde::Deserialize;
 use zip::ZipArchive;
 
 #[cfg(target_os = "windows")]
@@ -21,6 +23,23 @@ fn get_os() -> &'static str {
 #[cfg(target_os = "macos")]
 fn get_os() -> &'static str {
     return "mac";
+}
+
+const MIRAI_REPO: &'static str = "https://gitee.com/peratx/mirai-repo/raw/master";
+
+#[derive(Deserialize)]
+struct Package {
+    announcement: Option<String>,
+    #[serde(rename = "type")]
+    package_type: Option<String>,
+    channels: HashMap<String, Vec<String>>,
+    repo: Option<HashMap<String, RepoInfo>>,
+}
+
+#[derive(Deserialize)]
+struct RepoInfo {
+    archive: Option<String>,
+    metadata: Option<String>,
 }
 
 fn str_to_int(str: &str) -> i32 {
@@ -45,6 +64,57 @@ async fn get(client: &Client, str: &str) -> Result<Response, Error> {
         .await;
 }
 
+fn unzip(path: &str) -> String {
+    let mut zip = ZipArchive::new(File::open(path).unwrap()).unwrap();
+
+    let len = zip.len();
+    for i in 0..zip.len() {
+        let mut file = zip.by_index(i).unwrap();
+        let mut outpath = match file.enclosed_name() {
+            Some(path) => path.to_owned(),
+            None => continue,
+        };
+
+        print!("\rExtracting [{}/{}] {}", i + 1, len, file.name());
+        if (&*file.name()).ends_with('/') {
+            fs::create_dir_all(&outpath).unwrap();
+        } else {
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(&p).unwrap();
+                }
+            }
+            let mut outfile = File::create(&outpath).unwrap();
+            io::copy(&mut file, &mut outfile).unwrap();
+        }
+    }
+    println!();
+
+    return format!("{}", zip.by_index(0).unwrap().name());
+}
+
+async fn download(client: &Client, url: &str, file: &str) {
+    println!("Start Downloading: {}", url);
+
+    let mut res = get(&client, &url).await.unwrap();
+    let ttl = res.headers().get(reqwest::header::CONTENT_LENGTH).unwrap().to_str().unwrap();
+    let total = str_to_int(ttl);
+    let mut current = 0;
+    fs::remove_file(file);
+
+    {
+        let mut file = File::create(file).unwrap();
+
+        while let Some(chunk) = res.chunk().await.unwrap() {
+            current += chunk.len();
+            file.write(&*chunk);
+            print!("\rDownloading: {}/{}", current, total);
+        }
+
+        println!();
+    }
+}
+
 #[tokio::main]
 async fn main() {
     println!("iTXTech MCL Installer v1.0.0 [OS: {}]", get_os());
@@ -54,6 +124,7 @@ async fn main() {
 
     let client = reqwest::Client::new();
 
+    let mut java = String::new();
     if Path::new("./java").exists() {
         println!("Existing Java Executable detected, skip download JRE.");
     } else {
@@ -79,61 +150,19 @@ async fn main() {
         let text = resp.unwrap().text().await.unwrap();
         let lines = text.split("\n");
         let pack = format!("OpenJDK{}U-{}", ver, jre);
+
         for line in lines {
             if line.contains(&pack) && line.contains("hotspot") && (line.contains(".zip") || line.contains(".tar.gz")) {
                 let start = line.find(&pack).unwrap();
                 let end = line.find("\" title=\"").unwrap();
                 let archive = format!("{}{}", url, &line[start..end]);
-                println!("Start Downloading: {}", archive);
 
-                let mut res = get(&client, &archive).await.unwrap();
-                let ttl = res.headers().get(reqwest::header::CONTENT_LENGTH).unwrap().to_str().unwrap();
-                let total = str_to_int(ttl);
-                let mut current = 0;
-                fs::remove_file("java.arc");
-
-                {
-                    let mut file = File::create("java.arc").unwrap();
-
-                    while let Some(chunk) = res.chunk().await.unwrap() {
-                        current += chunk.len();
-                        file.write(&*chunk);
-                        print!("\rDownloading: {}/{}", current, total);
-                    }
-
-                    println!();
-                }
+                download(&client, &archive, "java.arc").await;
 
                 let mut java_dir = String::new();
-
                 #[cfg(windows)]
                     { //zip
-                        let mut zip = ZipArchive::new(File::open("java.arc").unwrap()).unwrap();
-
-                        java_dir = format!("{}", zip.by_index(0).unwrap().name());
-
-                        let len = zip.len();
-                        for i in 0..zip.len() {
-                            let mut file = zip.by_index(i).unwrap();
-                            let outpath = match file.enclosed_name() {
-                                Some(path) => path.to_owned(),
-                                None => continue,
-                            };
-
-                            print!("\rExtracting [{}/{}] {}", i + 1, len, file.name());
-                            if (&*file.name()).ends_with('/') {
-                                fs::create_dir_all(&outpath).unwrap();
-                            } else {
-                                if let Some(p) = outpath.parent() {
-                                    if !p.exists() {
-                                        fs::create_dir_all(&p).unwrap();
-                                    }
-                                }
-                                let mut outfile = fs::File::create(&outpath).unwrap();
-                                io::copy(&mut file, &mut outfile).unwrap();
-                            }
-                        }
-                        println!();
+                        java_dir = unzip("java.arc");
                     }
 
                 #[cfg(unix)]
@@ -161,18 +190,72 @@ async fn main() {
                 fs::remove_file("java.arc");
                 fs::rename(java_dir, "java");
 
-                #[cfg(windows)]
-                    let java = format!("{}\\bin\\java.exe", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
-                #[cfg(unix)]
-                    let java = format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
-
-                println!("Testing Java Executable: {}", java);
-
-                Command::new(java).arg("-version").spawn().unwrap().wait();
-
                 break;
             }
         }
+    }
+
+    #[cfg(windows)]
+        {
+            java = format!("{}\\bin\\java.exe", Path::new("java").canonicalize().unwrap().to_str().unwrap());
+            java = format!("{}", &java[4..java.len()]);
+        }
+    #[cfg(unix)]
+        {
+            java = format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+        }
+
+    println!("Testing Java Executable: {}", java);
+
+    Command::new(&java).arg("-version").spawn().unwrap().wait();
+    println!();
+
+    if Path::new("mcl.jar").exists() {
+        let mut zip = ZipArchive::new(File::open("mcl.jar").unwrap()).unwrap();
+        let mut buf = String::new();
+        zip.by_name("META-INF/MANIFEST.MF").unwrap().read_to_string(&mut buf).unwrap();
+        let start = buf.find("\nVersion: ").unwrap();
+        let ver = format!("{}", &buf[start + 10..start + 23]);
+        let hyphen = ver.find("-").unwrap();
+        let major = format!("{}", &ver[0..hyphen]);
+        let rev = format!("{}", &ver[hyphen + 1..ver.len()]);
+
+        println!("iTXTech Mirai Console Loader detected.");
+        println!("Major Version: {} Revision: {}", major, rev);
+        println!();
+    }
+
+    let manifest_url = format!("{}/org/itxtech/mcl/package.json", MIRAI_REPO);
+    println!("Fetching iTXTech MCL Package Info from {}", manifest_url);
+    let manifest = get(&client, &manifest_url).await.unwrap().json::<Package>().await.unwrap();
+    println!("{}", manifest.announcement.unwrap());
+
+    let latest = manifest.channels.get("stable").unwrap().last().unwrap().to_string();
+    println!("The latest stable version of iTXTech MCL is {}", latest);
+
+    print!("Would you like to download it? (Y/N, default: Y) ");
+    let option = read_line().trim().to_lowercase();
+    if option.is_empty() || option == "y" {
+        let repo = manifest.repo.unwrap();
+        let url = repo.get(&latest).unwrap().archive.as_ref().unwrap();
+        download(&client, url, "mcl.zip").await;
+        unzip("mcl.zip");
+        fs::remove_file("mcl.zip");
+
+        #[cfg(windows)]
+        if Path::new("mcl.cmd").exists() {
+            let j = format!("set JAVA_BINARY=\"{}\"", java);
+            fs::write("mcl.cmd", fs::read_to_string("mcl.cmd").unwrap().replace("set JAVA_BINARY=java", &j));
+        }
+
+        #[cfg(unix)]
+        if Path::new("mcl").exists() {
+            let j = format!("export JAVA_BINARY=\"{}\"", java);
+            fs::write("mcl", fs::read_to_string("mcl").unwrap().replace("export JAVA_BINARY=java", &j));
+        }
+
+        println!("MCL startup script has been updated. Use \"./mcl.\" to start MCL.");
+        println!();
     }
 
     println!("Press Enter to exit.");
