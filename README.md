@@ -13,8 +13,8 @@
 ### 选择可执行文件下载
 
 1. 在 [Release](https://github.com/iTXTech/mcl-installer/releases) 页面选择对应操作系统和架构下载可执行文件
-2. 文件命名格式为 `mcl-installer-操作系统-架构`，例如`mcl-installer-windows-x86.exe`，`mcl-installer-linux-amd64`
-   ，`mcl-installer-macos-amd64`等
+2. 文件命名格式为 `mcl-installer-版本-操作系统-架构`，例如`mcl-installer-1.0.0-windows-x86.exe`，`mcl-installer-1.0.0-linux-amd64`
+   ，`mcl-installer-1.0.0-macos-amd64`等
 
 ### 运行 `mcl-installer`
 
@@ -25,6 +25,22 @@ Java version (8-15, default: 11): 选择Java版本安装，默认为Java 11
 JRE or JDK (1: JRE, 2: JDK, default: JRE): 选择JRE还是JDK安装，默认为JRE
 Binary Architecture (default: x64): 选择架构安装，默认x64
 如果操作系统为Windows并且需要使用 mirai-native，请选择 x32（而不是i386等其他名字）
+
+The latest stable version of iTXTech MCL is x.x.x 获取最新MCL并询问是否下载
+Would you like to download it? (Y/N, default: Y) Y：下载，N：取消
+```
+
+## 构建 `mcl-installer`
+
+* `mcl-installer` 使用 [rust](https://www.rust-lang.org/) 编写，需要调用 `cargo` 构建。
+
+```bash
+$ git clone https://github.com/iTXTech/mcl-installer.git
+$ cd mcl-installer
+$ cargo build --release # 若不需要构建 release 配置，去除该参数即可
+$ cd target/release
+$ strip mcl-installer # strip 可减小可执行文件大小
+$ upx --best --lzma mcl-installer # 使用 upx 压缩可进一步缩小可执行文件大小
 ```
 
 ## 开源许可证

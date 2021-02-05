@@ -20,3 +20,9 @@ LegalCopyright = "Copyright © 2021 iTX Technologies"
 FileDescription = "Download OpenJDK and iTXTech Mirai Console Loader instantly."
 ProductName = "iTXTech MCL Installer"
 ProductVersion = "1.0.0.0"
+
+[profile.release]
+opt-level = 'z'
+lto = true
+panic = "abort"
+codegen-units = 1

@@ -252,6 +252,7 @@ async fn main() {
         if Path::new("mcl").exists() {
             let j = format!("export JAVA_BINARY=\"{}\"", java);
             fs::write("mcl", fs::read_to_string("mcl").unwrap().replace("export JAVA_BINARY=java", &j));
+            Command::new("chmod").arg("777").arg("mcl").spawn().unwrap().wait();
         }
 
         println!("MCL startup script has been updated. Use \"./mcl.\" to start MCL.");
