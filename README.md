@@ -8,6 +8,19 @@
 1. 前往 [Release](https://github.com/iTXTech/mcl-installer/releases) 选择对应操作系统和架构下载可执行文件
 2. 运行 `mcl-installer`
 
+### 以`Linux`和`macOS`为例
+
+```bash
+$ cd 你想要安装 iTXTech MCL 的目录
+$ curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.0/mcl-installer-1.0.0-linux-amd64 # 如果是macOS，就将链接中的 linux 修改为 macos
+$ chmod +x mcl-installer-1.0.0-linux-amd64
+$ ./mcl-installer-1.0.0-linux-amd64
+```
+
+### 以`Windows`为例
+
+下载 `mcl-installer-x.x.x-windows-amd64.exe` 到想要安装 `iTXTech MCL` 的目录中执行。
+
 ## 使用帮助
 
 ### 选择可执行文件下载

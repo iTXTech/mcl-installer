@@ -160,42 +160,39 @@ async fn main() {
                 download(&client, &archive, "java.arc").await;
 
                 let mut java_dir = String::new();
-                #[cfg(target_os = "windows")]
-                    { //zip
-                        java_dir = unzip("java.arc");
-                    }
+                #[cfg(target_os = "windows")] { //zip
+                    java_dir = unzip("java.arc");
+                }
 
-                #[cfg(target_os = "linux")]
-                    { //tar.gz
-                        let mut process = Command::new("tar").arg("-zxvf").arg("java.arc")
-                            .stdout(Stdio::piped())
-                            .spawn().unwrap();
-                        {
-                            let lines = BufReader::new(process.stdout.as_mut().unwrap()).lines();
-                            let mut j = false;
-                            for line in lines {
-                                let l = format!("{}", line.unwrap().trim());
-                                if !j {
-                                    let end = l.find("/").unwrap();
-                                    java_dir = format!("{}", &l[0..end]);
-                                    j = true;
-                                }
-                                print!("\rExtracting {}", l);
-                            }
-                        }
-                        process.wait().unwrap();
-                        println!();
-                    }
-
-                #[cfg(target_os = "macos")]
+                #[cfg(target_os = "linux")] { //tar.gz
+                    let mut process = Command::new("tar").arg("-zxvf").arg("java.arc")
+                        .stdout(Stdio::piped())
+                        .spawn().unwrap();
                     {
-                        println!("Extracting Archive...");
-                        let mut process = Command::new("tar").arg("-zxf").arg("java.arc")
-                            .spawn().unwrap().wait().unwrap();
-                        let start = archive.find("hotspot_").unwrap();
-                        let end = archive.find(".tar.gz").unwrap();
-                        java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
+                        let lines = BufReader::new(process.stdout.as_mut().unwrap()).lines();
+                        let mut j = false;
+                        for line in lines {
+                            let l = format!("{}", line.unwrap().trim());
+                            if !j {
+                                let end = l.find("/").unwrap();
+                                java_dir = format!("{}", &l[0..end]);
+                                j = true;
+                            }
+                            print!("\rExtracting {}", l);
+                        }
                     }
+                    process.wait().unwrap();
+                    println!();
+                }
+
+                #[cfg(target_os = "macos")] {
+                    println!("Extracting Archive...");
+                    let mut process = Command::new("tar").arg("-zxf").arg("java.arc")
+                        .spawn().unwrap().wait().unwrap();
+                    let start = archive.find("hotspot_").unwrap();
+                    let end = archive.find(".tar.gz").unwrap();
+                    java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
+                }
 
                 fs::remove_file("java.arc");
                 fs::rename(java_dir, "java");
@@ -205,19 +202,16 @@ async fn main() {
         }
     }
 
-    #[cfg(target_os = "windows")]
-        {
-            java = format!("{}\\bin\\java.exe", Path::new("java").canonicalize().unwrap().to_str().unwrap());
-            java = format!("{}", &java[4..java.len()]);
-        }
-    #[cfg(target_os = "linux")]
-        {
-            java = format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
-        }
-    #[cfg(target_os = "macos")]
-        {
-            java = format!("{}/Contents/Home/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
-        }
+    #[cfg(target_os = "windows")] {
+        java = format!("{}\\bin\\java.exe", Path::new("java").canonicalize().unwrap().to_str().unwrap());
+        java = format!("{}", &java[4..java.len()]);
+    }
+    #[cfg(target_os = "linux")] {
+        java = format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+    }
+    #[cfg(target_os = "macos")] {
+        java = format!("{}/Contents/Home/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+    }
 
     println!("Testing Java Executable: {}", java);
 
@@ -262,14 +256,21 @@ async fn main() {
             fs::write("mcl.cmd", fs::read_to_string("mcl.cmd").unwrap().replace("set JAVA_BINARY=java", &j));
         }
 
-        #[cfg(unix)]
-        if Path::new("mcl").exists() {
+        #[cfg(unix)] if Path::new("mcl").exists() {
             let j = format!("export JAVA_BINARY=\"{}\"", java);
             fs::write("mcl", fs::read_to_string("mcl").unwrap().replace("export JAVA_BINARY=java", &j));
             Command::new("chmod").arg("777").arg("mcl").spawn().unwrap().wait();
         }
 
-        println!("MCL startup script has been updated. Use \"./mcl.\" to start MCL.");
+        #[cfg(unix)] {
+            println!("MCL startup script has been updated.");
+            println!("Use \"./mcl\" to start MCL.");
+        }
+        #[cfg(windows)] {
+            println!("MCL startup script has been updated.");
+            println!("Use \".\\mcl\" to start MCL.");
+        }
+
         println!();
     }
 

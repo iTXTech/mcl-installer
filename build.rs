@@ -3,7 +3,7 @@ extern crate winres;
 
 #[cfg(windows)]
 fn main() {
-    let mut res = winres::WindowsResource::new();
+    let res = winres::WindowsResource::new();
     res.compile().unwrap();
 }
 
