@@ -10,22 +10,15 @@ use reqwest::{Client, Error, Response};
 use serde::Deserialize;
 use zip::ZipArchive;
 
-#[cfg(target_os = "windows")]
-fn get_os() -> &'static str {
-    return "windows";
-}
-
-#[cfg(target_os = "linux")]
-fn get_os() -> &'static str {
-    return "linux";
-}
-
-#[cfg(target_os = "macos")]
-fn get_os() -> &'static str {
-    return "mac";
-}
-
 const MIRAI_REPO: &'static str = "https://gitee.com/peratx/mirai-repo/raw/master";
+
+const PROG_VERSION: &'static str = "1.0.0";
+
+fn get_os() -> &'static str {
+    #[cfg(target_os = "windows")] return "windows";
+    #[cfg(target_os = "linux")] return "linux";
+    #[cfg(target_os = "macos")] return "mac";
+}
 
 #[derive(Deserialize)]
 struct Package {
@@ -115,16 +108,28 @@ async fn download(client: &Client, url: &str, file: &str) {
     }
 }
 
+fn find_java() -> String {
+    #[cfg(target_os = "windows")] {
+        let java = format!("{}\\bin\\java.exe", Path::new("java").canonicalize().unwrap().to_str().unwrap());
+        return format!("{}", &java[4..java.len()]);
+    }
+    #[cfg(target_os = "linux")] {
+        return format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+    }
+    #[cfg(target_os = "macos")] {
+        return format!("{}/Contents/Home/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+    }
+}
+
 #[tokio::main]
 async fn main() {
-    println!("iTXTech MCL Installer v1.0.0 [OS: {}]", get_os());
+    println!("iTXTech MCL Installer {} [OS: {}]", PROG_VERSION, get_os());
     println!("Licensed under GNU AGPLv3.");
     println!("https://github.com/iTXTech/mcl-installer");
     println!();
 
     let client = reqwest::Client::new();
 
-    let mut java = String::new();
     if Path::new("./java").exists() {
         println!("Existing Java Executable detected, skip download JRE.");
     } else {
@@ -164,21 +169,18 @@ async fn main() {
                     java_dir = unzip("java.arc");
                 }
 
+                #[cfg(unix)] {
+                    java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
+                }
+
                 #[cfg(target_os = "linux")] { //tar.gz
                     let mut process = Command::new("tar").arg("-zxvf").arg("java.arc")
                         .stdout(Stdio::piped())
                         .spawn().unwrap();
                     {
                         let lines = BufReader::new(process.stdout.as_mut().unwrap()).lines();
-                        let mut j = false;
                         for line in lines {
-                            let l = format!("{}", line.unwrap().trim());
-                            if !j {
-                                let end = l.find("/").unwrap();
-                                java_dir = format!("{}", &l[0..end]);
-                                j = true;
-                            }
-                            print!("\rExtracting {}", l);
+                            print!("\rExtracting {}", format!("{}", line.unwrap().trim()));
                         }
                     }
                     process.wait().unwrap();
@@ -191,7 +193,6 @@ async fn main() {
                         .spawn().unwrap().wait().unwrap();
                     let start = archive.find("hotspot_").unwrap();
                     let end = archive.find(".tar.gz").unwrap();
-                    java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
                 }
 
                 fs::remove_file("java.arc");
@@ -202,17 +203,8 @@ async fn main() {
         }
     }
 
-    #[cfg(target_os = "windows")] {
-        java = format!("{}\\bin\\java.exe", Path::new("java").canonicalize().unwrap().to_str().unwrap());
-        java = format!("{}", &java[4..java.len()]);
-    }
-    #[cfg(target_os = "linux")] {
-        java = format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
-    }
-    #[cfg(target_os = "macos")] {
-        java = format!("{}/Contents/Home/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
-    }
 
+    let java = find_java();
     println!("Testing Java Executable: {}", java);
 
     Command::new(&java).arg("-version").spawn().unwrap().wait();
