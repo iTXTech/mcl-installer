@@ -3,9 +3,11 @@
 `iTX Technologies Mirai Console Loader Installer` ，支持自动下载`Java`
 运行时和 [iTXTech Mirai Console Loader](https://github.com/iTXTech/mirai-console-loader) 。
 
-## 下载
+## 获取`mcl-installer`
 
 1. 前往 [Release](https://github.com/iTXTech/mcl-installer/releases) 选择对应操作系统和架构下载可执行文件
+2. 文件命名格式为 `mcl-installer-版本-操作系统-架构`，例如`mcl-installer-1.0.0-windows-x86.exe`，`mcl-installer-1.0.0-linux-amd64`
+   ，`mcl-installer-1.0.0-macos-amd64`等
 2. 运行 `mcl-installer`
 
 ### 以`Linux`和`macOS`为例
@@ -19,17 +21,9 @@ $ ./mcl-installer-1.0.0-linux-amd64
 
 ### 以`Windows`为例
 
-下载 `mcl-installer-x.x.x-windows-amd64.exe` 到想要安装 `iTXTech MCL` 的目录中执行。
+下载 `mcl-installer-版本-windows-amd64.exe` 到想要安装 `iTXTech MCL` 的目录中执行。
 
-## 使用帮助
-
-### 选择可执行文件下载
-
-1. 在 [Release](https://github.com/iTXTech/mcl-installer/releases) 页面选择对应操作系统和架构下载可执行文件
-2. 文件命名格式为 `mcl-installer-版本-操作系统-架构`，例如`mcl-installer-1.0.0-windows-x86.exe`，`mcl-installer-1.0.0-linux-amd64`
-   ，`mcl-installer-1.0.0-macos-amd64`等
-
-### 运行 `mcl-installer`
+## 运行 `mcl-installer`
 
 **如果您是新手，且没有特殊需求，一路回车就能进行安装了。**
 

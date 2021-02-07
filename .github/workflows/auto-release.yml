@@ -1,7 +1,4 @@
-on:
-  push:
-    tags:
-      - '*'
+on: [ push ]
 
 name: Auto Release
 
@@ -11,28 +8,45 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      commit_id: ${{ steps.get_commit_id.outputs.commit_id }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Get commit id
+        id: get_commit_id
+        run: echo "::set-output name=commit_id::$(git rev-parse --short HEAD)"
+
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: iTXTech MCL Installer ${{ github.ref }}
+          tag_name: ${{ steps.get_commit_id.outputs.commit_id }}
+          release_name: MCL Installer Auto Release ${{ steps.get_commit_id.outputs.commit_id }}
           draft: false
-          prerelease: false
+          prerelease: true
 
   release_assets:
     name: Release assets
     needs: create_release
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        config:
+        include:
           - os: ubuntu-latest
+            file: ./target/release/mcl-installer
+            strip: true
+            release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-linux-amd64
           - os: macos-latest
+            file: ./target/release/mcl-installer
+            strip: true
+            release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-macos-amd64
           - os: windows-latest
+            file: ./target/release/mcl-installer.exe
+            strip: false
+            release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-windows-amd64.exe
     steps:
       - name: Checkout code
         uses: actions/checkout@v1
@@ -50,52 +64,19 @@ jobs:
           command: build
           args: --release
 
-      - name: Compress executable using UPX
-        if: matrix.config.os == 'windows-latest'
-        uses: crazy-max/ghaction-upx@v1
+      - name: Compress binaries
+        uses: svenstaro/upx-action@v2
         with:
-          version: latest
-          file: ./target/release/mcl-installer.exe
+          file: ${{ matrix.file }}
+          strip: ${{ matrix.strip }}
           args: --best --lzma
 
-      - name: Compress executable using UPX
-        if: matrix.config.os == 'ubuntu-latest'
-        uses: crazy-max/ghaction-upx@v1
-        with:
-          version: latest
-          file: ./target/release/mcl-installer
-          args: --best --lzma
-
-      - name: Upload release assets Windows
-        if: matrix.config.os == 'windows-latest'
+      - name: Upload release assets
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: mcl-installer-${{ github.ref }}-windows-amd64.exe
-          asset_path: ./target/release/mcl-installer.exe
+          asset_name: ${{ matrix.release_name }}
+          asset_path: ${{ matrix.file }}
           asset_content_type: application/octet-stream
-
-      - name: Upload release assets Linux
-        if: matrix.config.os == 'ubuntu-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: mcl-installer-${{ github.ref }}-linux-amd64
-          asset_path: ./target/release/mcl-installer
-          asset_content_type: application/octet-stream
-
-      - name: Upload release assets macOS
-        if: matrix.config.os == 'macos-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: mcl-installer-${{ github.ref }}-macos-amd64
-          asset_path: ./target/release/mcl-installer
-          asset_content_type: application/octet-stream
-
