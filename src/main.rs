@@ -12,7 +12,7 @@ use zip::ZipArchive;
 
 const MIRAI_REPO: &'static str = "https://gitee.com/peratx/mirai-repo/raw/master";
 
-const PROG_VERSION: &'static str = "1.0.0";
+const PROG_VERSION: &'static str = "1.0.1";
 
 fn get_os() -> &'static str {
     #[cfg(target_os = "windows")] return "windows";

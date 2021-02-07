@@ -1,4 +1,7 @@
-on: [ push ]
+on:
+  push:
+    tags:
+      - '*'
 
 name: Auto Release
 
@@ -47,6 +50,22 @@ jobs:
           command: build
           args: --release
 
+      - name: Compress executable using UPX
+        if: matrix.config.os == 'windows-latest'
+        uses: crazy-max/ghaction-upx@v1
+        with:
+          version: latest
+          file: ./target/release/mcl-installer.exe
+          args: --best --lzma
+
+      - name: Compress executable using UPX
+        if: matrix.config.os == 'ubuntu-latest'
+        uses: crazy-max/ghaction-upx@v1
+        with:
+          version: latest
+          file: ./target/release/mcl-installer
+          args: --best --lzma
+
       - name: Upload release assets Windows
         if: matrix.config.os == 'windows-latest'
         uses: actions/upload-release-asset@v1
@@ -54,17 +73,29 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: mcl-installer-${{ github.ref }}-${{ matrix.config.os }}-amd64.exe
+          asset_name: mcl-installer-${{ github.ref }}-windows-amd64.exe
           asset_path: ./target/release/mcl-installer.exe
           asset_content_type: application/octet-stream
 
-      - name: Upload release assets Unix
-        if: matrix.config.os != 'windows-latest'
+      - name: Upload release assets Linux
+        if: matrix.config.os == 'ubuntu-latest'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: mcl-installer-${{ github.ref }}-${{ matrix.config.os }}-amd64
+          asset_name: mcl-installer-${{ github.ref }}-linux-amd64
           asset_path: ./target/release/mcl-installer
           asset_content_type: application/octet-stream
+
+      - name: Upload release assets macOS
+        if: matrix.config.os == 'macos-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_name: mcl-installer-${{ github.ref }}-macos-amd64
+          asset_path: ./target/release/mcl-installer
+          asset_content_type: application/octet-stream
+
