@@ -108,16 +108,23 @@ async fn download(client: &Client, url: &str, file: &str) {
     }
 }
 
+fn get_canonical_path(p: &str) -> String {
+    let p = Path::new(p).canonicalize().unwrap();
+    let path = p.to_str().unwrap();
+    #[cfg(windows)] return format!("{}", &path[4..path.len()]);
+    #[cfg(unix)] return path.to_string();
+}
+
 fn find_java() -> String {
+    let j = get_canonical_path("java");
     #[cfg(target_os = "windows")] {
-        let java = format!("{}\\bin\\java.exe", Path::new("java").canonicalize().unwrap().to_str().unwrap());
-        return format!("{}", &java[4..java.len()]);
+        return format!("{}\\bin\\java.exe", j);;
     }
     #[cfg(target_os = "linux")] {
-        return format!("{}/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+        return format!("{}/bin/java", j);
     }
     #[cfg(target_os = "macos")] {
-        return format!("{}/Contents/Home/bin/java", fs::canonicalize(Path::new("java")).unwrap().to_str().unwrap());
+        return format!("{}/Contents/Home/bin/java", j);
     }
 }
 
@@ -126,6 +133,8 @@ async fn main() {
     println!("iTXTech MCL Installer {} [OS: {}]", PROG_VERSION, get_os());
     println!("Licensed under GNU AGPLv3.");
     println!("https://github.com/iTXTech/mcl-installer");
+    println!();
+    println!("iTXTech MCL will install to {}", get_canonical_path("."));
     println!();
 
     let client = reqwest::Client::new();
@@ -195,8 +204,8 @@ async fn main() {
                     let end = archive.find(".tar.gz").unwrap();
                 }
 
-                fs::remove_file("java.arc");
-                fs::rename(java_dir, "java");
+                fs::remove_file("java.arc").unwrap();
+                fs::rename(java_dir, "java").unwrap();
 
                 break;
             }
