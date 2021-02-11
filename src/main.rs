@@ -118,7 +118,7 @@ fn get_canonical_path(p: &str) -> String {
 fn find_java() -> String {
     let j = get_canonical_path("java");
     #[cfg(target_os = "windows")] {
-        return format!("{}\\bin\\java.exe", j);;
+        return format!("{}\\bin\\java.exe", j);
     }
     #[cfg(target_os = "linux")] {
         return format!("{}/bin/java", j);
@@ -198,10 +198,7 @@ async fn main() {
 
                 #[cfg(target_os = "macos")] {
                     println!("Extracting Archive...");
-                    let mut process = Command::new("tar").arg("-zxf").arg("java.arc")
-                        .spawn().unwrap().wait().unwrap();
-                    let start = archive.find("hotspot_").unwrap();
-                    let end = archive.find(".tar.gz").unwrap();
+                    Command::new("tar").arg("-zxf").arg("java.arc").spawn().unwrap().wait().unwrap();
                 }
 
                 fs::remove_file("java.arc").unwrap();
