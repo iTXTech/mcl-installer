@@ -116,16 +116,13 @@ fn get_canonical_path(p: &str) -> String {
 }
 
 fn find_java() -> String {
+    if !Path::new("./java").exists() {
+        return "java".to_string();
+    }
     let j = get_canonical_path("java");
-    #[cfg(target_os = "windows")] {
-        return format!("{}\\bin\\java.exe", j);
-    }
-    #[cfg(target_os = "linux")] {
-        return format!("{}/bin/java", j);
-    }
-    #[cfg(target_os = "macos")] {
-        return format!("{}/Contents/Home/bin/java", j);
-    }
+    #[cfg(target_os = "windows")] return format!("{}\\bin\\java.exe", j);
+    #[cfg(target_os = "linux")] return format!("{}/bin/java", j);
+    #[cfg(target_os = "macos")] return format!("{}/Contents/Home/bin/java", j);
 }
 
 #[tokio::main]
@@ -134,14 +131,31 @@ async fn main() {
     println!("Licensed under GNU AGPLv3.");
     println!("https://github.com/iTXTech/mcl-installer");
     println!();
-    println!("iTXTech MCL will install to {}", get_canonical_path("."));
+    println!("iTXTech MCL and Java will be downloaded to \"{}\"", get_canonical_path("."));
     println!();
+
+    println!("Checking existing Java installation.");
+    if !Path::new("./java").exists() {
+        Command::new("java").arg("-version").spawn().unwrap().wait();
+    } else {
+        Command::new(find_java()).arg("-version").spawn().unwrap().wait();
+        println!("Reinstall Java will delete the current installation.");
+    };
+
+    println!();
+    print!("Would you like to install Java? (Y/N, default: Y) ");
+    let install_java_opt = read_line().trim().to_lowercase();
+    let install_java = install_java_opt.is_empty() || install_java_opt == "y";
 
     let client = reqwest::Client::new();
 
-    if Path::new("./java").exists() {
-        println!("Existing Java Executable detected, skip download JRE.");
-    } else {
+    let mut java = "java".to_string();
+    if install_java {
+        if Path::new("./java").exists() {
+            println!("Deleting \"{}\".", get_canonical_path("java"));
+            fs::remove_dir_all("java");
+        }
+
         print!("Java version (8-15, default: 11): ");
         let mut ver = str_to_int(&read_line());
         ver = if ver >= 8 && ver <= 15 { ver } else { 11 };
@@ -173,12 +187,10 @@ async fn main() {
 
                 download(&client, &archive, "java.arc").await;
 
-                let mut java_dir = String::new();
-                #[cfg(target_os = "windows")] { //zip
+                let java_dir;
+                if cfg!(windows) {
                     java_dir = unzip("java.arc");
-                }
-
-                #[cfg(unix)] {
+                } else {
                     java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
                 }
 
@@ -207,14 +219,12 @@ async fn main() {
                 break;
             }
         }
+
+        java = find_java();
+        println!("Testing Java Executable: {}", java);
+        Command::new(&java).arg("-version").spawn().unwrap().wait();
+        println!();
     }
-
-
-    let java = find_java();
-    println!("Testing Java Executable: {}", java);
-
-    Command::new(&java).arg("-version").spawn().unwrap().wait();
-    println!();
 
     if Path::new("mcl.jar").exists() {
         let mut zip = ZipArchive::new(File::open("mcl.jar").unwrap()).unwrap();
@@ -248,26 +258,24 @@ async fn main() {
         unzip("mcl.zip");
         fs::remove_file("mcl.zip");
 
-        #[cfg(windows)]
-        if Path::new("mcl.cmd").exists() {
-            let j = format!("set JAVA_BINARY=\"{}\"", java);
-            fs::write("mcl.cmd", fs::read_to_string("mcl.cmd").unwrap().replace("set JAVA_BINARY=java", &j));
+        if install_java {
+            #[cfg(windows)]
+            if Path::new("mcl.cmd").exists() {
+                let j = format!("set JAVA_BINARY=\"{}\"", java);
+                fs::write("mcl.cmd", fs::read_to_string("mcl.cmd").unwrap().replace("set JAVA_BINARY=java", &j));
+            }
+
+            #[cfg(unix)] if Path::new("mcl").exists() {
+                let j = format!("export JAVA_BINARY=\"{}\"", java);
+                fs::write("mcl", fs::read_to_string("mcl").unwrap().replace("export JAVA_BINARY=java", &j));
+                Command::new("chmod").arg("777").arg("mcl").spawn().unwrap().wait();
+            }
+
+            println!("MCL startup script has been updated.");
         }
 
-        #[cfg(unix)] if Path::new("mcl").exists() {
-            let j = format!("export JAVA_BINARY=\"{}\"", java);
-            fs::write("mcl", fs::read_to_string("mcl").unwrap().replace("export JAVA_BINARY=java", &j));
-            Command::new("chmod").arg("777").arg("mcl").spawn().unwrap().wait();
-        }
-
-        #[cfg(unix)] {
-            println!("MCL startup script has been updated.");
-            println!("Use \"./mcl\" to start MCL.");
-        }
-        #[cfg(windows)] {
-            println!("MCL startup script has been updated.");
-            println!("Use \".\\mcl\" to start MCL.");
-        }
+        #[cfg(unix)] println!("Use \"./mcl\" to start MCL.");
+        #[cfg(windows)] println!("Use \".\\mcl\" to start MCL.");
 
         println!();
     }
