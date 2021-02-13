@@ -191,6 +191,8 @@ async fn main() {
                 if cfg!(windows) {
                     java_dir = unzip("java.arc");
                 } else {
+                    let start = archive.find("hotspot_").unwrap();
+                    let end = archive.find(".tar.gz").unwrap();
                     java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
                 }
 

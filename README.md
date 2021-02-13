@@ -12,9 +12,12 @@
 
 ### 以`Linux`和`macOS`为例
 
+* 自动构建的二进制文件采用了 `upx` 进行压缩，所以暂时不能在 `WSL` 和 `macOS Big Sur` 下运行。
+* 如要在以上环境运行，可以 [手动构建](#构建-mcl-installer) 。
+
 ```bash
 $ cd 你想要安装 iTXTech MCL 的目录
-$ curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.0/mcl-installer-1.0.2-linux-amd64 # 如果是macOS，就将链接中的 linux 修改为 macos
+$ curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.2/mcl-installer-1.0.2-linux-amd64 # 如果是macOS，就将链接中的 linux 修改为 macos
 $ chmod +x mcl-installer-1.0.2-linux-amd64
 $ ./mcl-installer-1.0.2-linux-amd64
 ```
