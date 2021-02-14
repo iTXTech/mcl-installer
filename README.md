@@ -31,6 +31,9 @@ $ ./mcl-installer-1.0.2-linux-amd64
 **如果您是新手，且没有特殊需求，一路回车就能进行安装了。**
 
 ```
+Would you like to install Java? (Y/N, default: Y)
+是否安装Java，如果上面的检测结果输出的Java版本大于11即可，可输入N跳过安装，否则必须安装Java
+
 Java version (8-15, default: 11): 选择Java版本安装，默认为Java 11
 JRE or JDK (1: JRE, 2: JDK, default: JRE): 选择JRE还是JDK安装，默认为JRE
 Binary Architecture (default: x64): 选择架构安装，默认x64
@@ -47,7 +50,9 @@ Would you like to download it? (Y/N, default: Y) Y：下载，N：取消
 ```bash
 $ git clone https://github.com/iTXTech/mcl-installer.git
 $ cd mcl-installer
-$ cargo build --release # 若不需要构建 release 配置，去除该参数即可
+# native-tls => 使用系统的 OpenSSL，rustls => 使用 rustls。
+# --release 用于构建优化过的二进制文件，如需要进行调试请去除该参数。
+$ cargo build --features native-tls --release
 $ cd target/release
 $ strip mcl-installer # strip 可减小可执行文件大小
 $ upx --best --lzma mcl-installer # 使用 upx 压缩可进一步缩小可执行文件大小

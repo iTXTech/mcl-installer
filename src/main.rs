@@ -16,8 +16,15 @@ const PROG_VERSION: &'static str = "1.0.2";
 
 fn get_os() -> &'static str {
     #[cfg(target_os = "windows")] return "windows";
-    #[cfg(target_os = "linux")] return "linux";
+    #[cfg(any(target_os = "linux", target_os = "android"))] return "linux";
     #[cfg(target_os = "macos")] return "mac";
+}
+
+fn get_arch() -> &'static str {
+    #[cfg(target_arch = "x86")] return "x32";
+    #[cfg(target_arch = "x86_64")] return "x64";
+    #[cfg(target_arch = "arm")] return "arm";
+    #[cfg(target_arch = "aarch64")] return "aarch64";
 }
 
 #[derive(Deserialize)]
@@ -121,7 +128,7 @@ fn find_java() -> String {
     }
     let j = get_canonical_path("java");
     #[cfg(target_os = "windows")] return format!("{}\\bin\\java.exe", j);
-    #[cfg(target_os = "linux")] return format!("{}/bin/java", j);
+    #[cfg(any(target_os = "linux", target_os = "android"))] return format!("{}/bin/java", j);
     #[cfg(target_os = "macos")] return format!("{}/Contents/Home/bin/java", j);
 }
 
@@ -147,7 +154,9 @@ async fn main() {
     let install_java_opt = read_line().trim().to_lowercase();
     let install_java = install_java_opt.is_empty() || install_java_opt == "y";
 
-    let client = reqwest::Client::new();
+    let client = reqwest::ClientBuilder::new()
+        .danger_accept_invalid_certs(true)
+        .build().unwrap();
 
     let mut java = "java".to_string();
     if install_java {
@@ -163,9 +172,9 @@ async fn main() {
         print!("JRE or JDK (1: JRE, 2: JDK, default: JRE): ");
         let jre = if str_to_int(&read_line()) == 2 { "jdk" } else { "jre" };
 
-        print!("Binary Architecture (default: x64): ");
+        print!("Binary Architecture (default: {}): ", get_arch());
         let a = read_line();
-        let arch = if a.trim().is_empty() { "x64" } else { a.trim() };
+        let arch = if a.trim().is_empty() { get_arch() } else { a.trim() };
 
         println!("Fetching file list for {} version {} on {}", jre, ver, arch);
 
@@ -196,7 +205,7 @@ async fn main() {
                     java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
                 }
 
-                #[cfg(target_os = "linux")] { //tar.gz
+                #[cfg(any(target_os = "linux", target_os = "android"))] { //tar.gz
                     let mut process = Command::new("tar").arg("-zxvf").arg("java.arc")
                         .stdout(Stdio::piped())
                         .spawn().unwrap();

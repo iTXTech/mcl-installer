@@ -5,8 +5,12 @@ authors = ["PeratX <peratx@itxtech.org>"]
 edition = "2018"
 build = "build.rs"
 
+[features]
+native-tls = ["reqwest/native-tls"]
+rustls = ["reqwest/rustls-tls-manual-roots"]
+
 [dependencies]
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", default-features = false, features = ["json"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serde = { version = "1.0", features = ["derive"] }
 zip = { version = "0.5", default-features = false, features = ["deflate"] }
