@@ -7,7 +7,7 @@ build = "build.rs"
 
 [features]
 native-tls = ["reqwest/native-tls"]
-rustls = ["reqwest/rustls-tls-manual-roots"]
+rustls = ["reqwest/rustls-tls-webpki-roots"]
 
 [dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }

@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::option::Option::Some;
 use std::path::{Path, PathBuf};
-use std::process::{Command, exit, Stdio};
+use std::process::{Child, Command, exit, Stdio};
 
 use reqwest::{Client, Error, Response};
 use serde::Deserialize;
@@ -132,6 +132,14 @@ fn find_java() -> String {
     #[cfg(target_os = "macos")] return format!("{}/Contents/Home/bin/java", j);
 }
 
+fn exec(cmd: &mut Command, err_msg: &str) {
+    if let Ok(mut r) = cmd.spawn() {
+        r.wait().unwrap();
+    } else {
+        println!("Error occurred while {}", err_msg);
+    }
+}
+
 #[tokio::main]
 async fn main() {
     println!("iTXTech MCL Installer {} [OS: {}]", PROG_VERSION, get_os());
@@ -143,9 +151,9 @@ async fn main() {
 
     println!("Checking existing Java installation.");
     if !Path::new("./java").exists() {
-        Command::new("java").arg("-version").spawn().unwrap().wait();
+        exec(Command::new("java").arg("-version"), "checking Java installation");
     } else {
-        Command::new(find_java()).arg("-version").spawn().unwrap().wait();
+        exec(Command::new(find_java()).arg("-version"), "checking Java installation");
         println!("Reinstall Java will delete the current installation.");
     };
 
@@ -154,9 +162,7 @@ async fn main() {
     let install_java_opt = read_line().trim().to_lowercase();
     let install_java = install_java_opt.is_empty() || install_java_opt == "y";
 
-    let client = reqwest::ClientBuilder::new()
-        .danger_accept_invalid_certs(true)
-        .build().unwrap();
+    let client = reqwest::Client::new();
 
     let mut java = "java".to_string();
     if install_java {
@@ -221,7 +227,7 @@ async fn main() {
 
                 #[cfg(target_os = "macos")] {
                     println!("Extracting Archive...");
-                    Command::new("tar").arg("-zxf").arg("java.arc").spawn().unwrap().wait().unwrap();
+                    exec(Command::new("tar").arg("-zxf").arg("java.arc"), "unarchiving Java");
                 }
 
                 fs::remove_file("java.arc").unwrap();
@@ -279,7 +285,7 @@ async fn main() {
             #[cfg(unix)] if Path::new("mcl").exists() {
                 let j = format!("export JAVA_BINARY=\"{}\"", java);
                 fs::write("mcl", fs::read_to_string("mcl").unwrap().replace("export JAVA_BINARY=java", &j));
-                Command::new("chmod").arg("777").arg("mcl").spawn().unwrap().wait();
+                exec(Command::new("chmod").arg("777").arg("mcl"), "setting permission to mcl");
             }
 
             println!("MCL startup script has been updated.");
