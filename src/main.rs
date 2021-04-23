@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::option::Option::Some;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, exit, Stdio};
+use std::process::{exit, Child, Command, Stdio};
 
 use reqwest::{Client, Error, Response};
 use serde::Deserialize;
@@ -15,16 +15,23 @@ const MIRAI_REPO: &'static str = "https://gitee.com/peratx/mirai-repo/raw/master
 const PROG_VERSION: &'static str = "1.0.2";
 
 fn get_os() -> &'static str {
-    #[cfg(target_os = "windows")] return "windows";
-    #[cfg(any(target_os = "linux", target_os = "android"))] return "linux";
-    #[cfg(target_os = "macos")] return "mac";
+    #[cfg(target_os = "windows")]
+    return "windows";
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    return "linux";
+    #[cfg(target_os = "macos")]
+    return "mac";
 }
 
 fn get_arch() -> &'static str {
-    #[cfg(target_arch = "x86")] return "x32";
-    #[cfg(target_arch = "x86_64")] return "x64";
-    #[cfg(target_arch = "arm")] return "arm";
-    #[cfg(target_arch = "aarch64")] return "aarch64";
+    #[cfg(target_arch = "x86")]
+    return "x32";
+    #[cfg(target_arch = "x86_64")]
+    return "x64";
+    #[cfg(target_arch = "arm")]
+    return "arm";
+    #[cfg(target_arch = "aarch64")]
+    return "aarch64";
 }
 
 #[derive(Deserialize)]
@@ -97,7 +104,12 @@ async fn download(client: &Client, url: &str, file: &str) {
     println!("Start Downloading: {}", url);
 
     let mut res = get(&client, &url).await.unwrap();
-    let ttl = res.headers().get(reqwest::header::CONTENT_LENGTH).unwrap().to_str().unwrap();
+    let ttl = res
+        .headers()
+        .get(reqwest::header::CONTENT_LENGTH)
+        .unwrap()
+        .to_str()
+        .unwrap();
     let total = str_to_int(ttl);
     let mut current = 0;
     fs::remove_file(file);
@@ -118,8 +130,10 @@ async fn download(client: &Client, url: &str, file: &str) {
 fn get_canonical_path(p: &str) -> String {
     let p = Path::new(p).canonicalize().unwrap();
     let path = p.to_str().unwrap();
-    #[cfg(windows)] return format!("{}", &path[4..path.len()]);
-    #[cfg(unix)] return path.to_string();
+    #[cfg(windows)]
+    return format!("{}", &path[4..path.len()]);
+    #[cfg(unix)]
+    return path.to_string();
 }
 
 fn find_java() -> String {
@@ -127,9 +141,12 @@ fn find_java() -> String {
         return "java".to_string();
     }
     let j = get_canonical_path("java");
-    #[cfg(target_os = "windows")] return format!("{}\\bin\\java.exe", j);
-    #[cfg(any(target_os = "linux", target_os = "android"))] return format!("{}/bin/java", j);
-    #[cfg(target_os = "macos")] return format!("{}/Contents/Home/bin/java", j);
+    #[cfg(target_os = "windows")]
+    return format!("{}\\bin\\java.exe", j);
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    return format!("{}/bin/java", j);
+    #[cfg(target_os = "macos")]
+    return format!("{}/Contents/Home/bin/java", j);
 }
 
 fn exec(cmd: &mut Command, err_msg: &str) {
@@ -146,14 +163,23 @@ async fn main() {
     println!("Licensed under GNU AGPLv3.");
     println!("https://github.com/iTXTech/mcl-installer");
     println!();
-    println!("iTXTech MCL and Java will be downloaded to \"{}\"", get_canonical_path("."));
+    println!(
+        "iTXTech MCL and Java will be downloaded to \"{}\"",
+        get_canonical_path(".")
+    );
     println!();
 
     println!("Checking existing Java installation.");
     if !Path::new("./java").exists() {
-        exec(Command::new("java").arg("-version"), "checking Java installation");
+        exec(
+            Command::new("java").arg("-version"),
+            "checking Java installation",
+        );
     } else {
-        exec(Command::new(find_java()).arg("-version"), "checking Java installation");
+        exec(
+            Command::new(find_java()).arg("-version"),
+            "checking Java installation",
+        );
         println!("Reinstall Java will delete the current installation.");
     };
 
@@ -176,15 +202,29 @@ async fn main() {
         ver = if ver >= 8 && ver <= 15 { ver } else { 11 };
 
         print!("JRE or JDK (1: JRE, 2: JDK, default: JRE): ");
-        let jre = if str_to_int(&read_line()) == 2 { "jdk" } else { "jre" };
+        let jre = if str_to_int(&read_line()) == 2 {
+            "jdk"
+        } else {
+            "jre"
+        };
 
         print!("Binary Architecture (default: {}): ", get_arch());
         let a = read_line();
-        let arch = if a.trim().is_empty() { get_arch() } else { a.trim() };
+        let arch = if a.trim().is_empty() {
+            get_arch()
+        } else {
+            a.trim()
+        };
 
         println!("Fetching file list for {} version {} on {}", jre, ver, arch);
 
-        let url = format!("https://mirrors.tuna.tsinghua.edu.cn/AdoptOpenJDK/{}/{}/{}/{}/", ver, jre, arch, get_os());
+        let url = format!(
+            "https://mirrors.tuna.tsinghua.edu.cn/AdoptOpenJDK/{}/{}/{}/{}/",
+            ver,
+            jre,
+            arch,
+            get_os()
+        );
         let resp = get(&client, &url).await;
         if !resp.is_ok() {
             println!("Fail to fetch AdoptOpenJDK download list.");
@@ -195,7 +235,10 @@ async fn main() {
         let pack = format!("OpenJDK{}U-{}", ver, jre);
 
         for line in lines {
-            if line.contains(&pack) && line.contains("hotspot") && (line.contains(".zip") || line.contains(".tar.gz")) {
+            if line.contains(&pack)
+                && line.contains("hotspot")
+                && (line.contains(".zip") || line.contains(".tar.gz"))
+            {
                 let start = line.find(&pack).unwrap();
                 let end = line.find("\" title=\"").unwrap();
                 let archive = format!("{}{}", url, &line[start..end]);
@@ -208,13 +251,22 @@ async fn main() {
                 } else {
                     let start = archive.find("hotspot_").unwrap();
                     let end = archive.find(".tar.gz").unwrap();
-                    java_dir = format!("jdk-{}{}", &archive[start + 8..end].replace("_", "+"), if jre == "jre" { "-jre" } else { "" });
+                    java_dir = format!(
+                        "jdk-{}{}",
+                        &archive[start + 8..end].replace("_", "+"),
+                        if jre == "jre" { "-jre" } else { "" }
+                    );
                 }
 
-                #[cfg(any(target_os = "linux", target_os = "android"))] { //tar.gz
-                    let mut process = Command::new("tar").arg("-zxvf").arg("java.arc")
+                #[cfg(any(target_os = "linux", target_os = "android"))]
+                {
+                    //tar.gz
+                    let mut process = Command::new("tar")
+                        .arg("-zxvf")
+                        .arg("java.arc")
                         .stdout(Stdio::piped())
-                        .spawn().unwrap();
+                        .spawn()
+                        .unwrap();
                     {
                         let lines = BufReader::new(process.stdout.as_mut().unwrap()).lines();
                         for line in lines {
@@ -225,9 +277,13 @@ async fn main() {
                     println!();
                 }
 
-                #[cfg(target_os = "macos")] {
+                #[cfg(target_os = "macos")]
+                {
                     println!("Extracting Archive...");
-                    exec(Command::new("tar").arg("-zxf").arg("java.arc"), "unarchiving Java");
+                    exec(
+                        Command::new("tar").arg("-zxf").arg("java.arc"),
+                        "unarchiving Java",
+                    );
                 }
 
                 fs::remove_file("java.arc").unwrap();
@@ -246,7 +302,10 @@ async fn main() {
     if Path::new("mcl.jar").exists() {
         let mut zip = ZipArchive::new(File::open("mcl.jar").unwrap()).unwrap();
         let mut buf = String::new();
-        zip.by_name("META-INF/MANIFEST.MF").unwrap().read_to_string(&mut buf).unwrap();
+        zip.by_name("META-INF/MANIFEST.MF")
+            .unwrap()
+            .read_to_string(&mut buf)
+            .unwrap();
         let start = buf.find("\nVersion: ").unwrap();
         let ver = format!("{}", &buf[start + 10..start + 23]);
         let hyphen = ver.find("-").unwrap();
@@ -260,10 +319,21 @@ async fn main() {
 
     let manifest_url = format!("{}/org/itxtech/mcl/package.json", MIRAI_REPO);
     println!("Fetching iTXTech MCL Package Info from {}", manifest_url);
-    let manifest = get(&client, &manifest_url).await.unwrap().json::<Package>().await.unwrap();
+    let manifest = get(&client, &manifest_url)
+        .await
+        .unwrap()
+        .json::<Package>()
+        .await
+        .unwrap();
     println!("{}", manifest.announcement.unwrap());
 
-    let latest = manifest.channels.get("stable").unwrap().last().unwrap().to_string();
+    let latest = manifest
+        .channels
+        .get("stable")
+        .unwrap()
+        .last()
+        .unwrap()
+        .to_string();
     println!("The latest stable version of iTXTech MCL is {}", latest);
 
     print!("Would you like to download it? (Y/N, default: Y) ");
@@ -279,20 +349,36 @@ async fn main() {
             #[cfg(windows)]
             if Path::new("mcl.cmd").exists() {
                 let j = format!("set JAVA_BINARY=\"{}\"", java);
-                fs::write("mcl.cmd", fs::read_to_string("mcl.cmd").unwrap().replace("set JAVA_BINARY=java", &j));
+                fs::write(
+                    "mcl.cmd",
+                    fs::read_to_string("mcl.cmd")
+                        .unwrap()
+                        .replace("set JAVA_BINARY=java", &j),
+                );
             }
 
-            #[cfg(unix)] if Path::new("mcl").exists() {
+            #[cfg(unix)]
+            if Path::new("mcl").exists() {
                 let j = format!("export JAVA_BINARY=\"{}\"", java);
-                fs::write("mcl", fs::read_to_string("mcl").unwrap().replace("export JAVA_BINARY=java", &j));
-                exec(Command::new("chmod").arg("777").arg("mcl"), "setting permission to mcl");
+                fs::write(
+                    "mcl",
+                    fs::read_to_string("mcl")
+                        .unwrap()
+                        .replace("export JAVA_BINARY=java", &j),
+                );
+                exec(
+                    Command::new("chmod").arg("777").arg("mcl"),
+                    "setting permission to mcl",
+                );
             }
 
             println!("MCL startup script has been updated.");
         }
 
-        #[cfg(unix)] println!("Use \"./mcl\" to start MCL.");
-        #[cfg(windows)] println!("Use \".\\mcl\" to start MCL.");
+        #[cfg(unix)]
+        println!("Use \"./mcl\" to start MCL.");
+        #[cfg(windows)]
+        println!("Use \".\\mcl\" to start MCL.");
 
         println!();
     }
