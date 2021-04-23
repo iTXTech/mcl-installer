@@ -1,18 +1,22 @@
+mod aoe;
+
+use self::aoe::AbortOnError;
+
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::option::Option::Some;
-use std::path::{Path, PathBuf};
-use std::process::{exit, Child, Command, Stdio};
+use std::path::Path;
+use std::process::{Command, Stdio};
 
 use reqwest::{Client, Error, Response};
 use serde::Deserialize;
 use zip::ZipArchive;
 
-const MIRAI_REPO: &'static str = "https://gitee.com/peratx/mirai-repo/raw/master";
+const MIRAI_REPO: &str = "https://gitee.com/peratx/mirai-repo/raw/master";
 
-const PROG_VERSION: &'static str = "1.0.2";
+const PROG_VERSION: &str = "1.0.2";
 
 fn get_os() -> &'static str {
     #[cfg(target_os = "windows")]
@@ -34,6 +38,7 @@ fn get_arch() -> &'static str {
     return "aarch64";
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct Package {
     announcement: Option<String>,
@@ -43,25 +48,22 @@ struct Package {
     repo: Option<HashMap<String, RepoInfo>>,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct RepoInfo {
     archive: Option<String>,
     metadata: Option<String>,
 }
 
-fn str_to_int(str: &str) -> i32 {
-    let i = str.trim().parse::<i32>();
-    if i.is_ok() {
-        return i.unwrap();
-    }
-    return 0;
+fn str_to_int(s: &str) -> i32 {
+    s.trim().parse::<i32>().unwrap_or(0)
 }
 
 fn read_line() -> String {
-    let mut tmp = String::new();
-    io::stdout().flush().unwrap();
-    io::stdin().read_line(&mut tmp).ok().expect("error");
-    return tmp;
+    let mut buf = String::new();
+    io::stdout().flush().aoe();
+    io::stdin().read_line(&mut buf).aoe();
+    buf
 }
 
 async fn get(client: &Client, str: &str) -> Result<Response, Error> {
@@ -72,11 +74,11 @@ async fn get(client: &Client, str: &str) -> Result<Response, Error> {
 }
 
 fn unzip(path: &str) -> String {
-    let mut zip = ZipArchive::new(File::open(path).unwrap()).unwrap();
+    let mut zip = ZipArchive::new(File::open(path).aoe()).aoe();
 
     let len = zip.len();
     for i in 0..zip.len() {
-        let mut file = zip.by_index(i).unwrap();
+        let mut file = zip.by_index(i).aoe();
         let outpath = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => continue,
@@ -84,42 +86,43 @@ fn unzip(path: &str) -> String {
 
         print!("\rExtracting [{}/{}] {}", i + 1, len, file.name());
         if (&*file.name()).ends_with('/') {
-            fs::create_dir_all(&outpath).unwrap();
+            fs::create_dir_all(&outpath).aoe();
         } else {
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(&p).unwrap();
+                    fs::create_dir_all(&p).aoe();
                 }
             }
-            let mut outfile = File::create(&outpath).unwrap();
-            io::copy(&mut file, &mut outfile).unwrap();
+            let mut outfile = File::create(&outpath).aoe();
+            io::copy(&mut file, &mut outfile).aoe();
         }
     }
     println!();
 
-    return format!("{}", zip.by_index(0).unwrap().name());
+    let zip_file0 = zip.by_index(0).aoe();
+    zip_file0.name().to_owned()
 }
 
 async fn download(client: &Client, url: &str, file: &str) {
     println!("Start Downloading: {}", url);
 
-    let mut res = get(&client, &url).await.unwrap();
+    let mut res = get(&client, &url).await.aoe();
     let ttl = res
         .headers()
         .get(reqwest::header::CONTENT_LENGTH)
         .unwrap()
         .to_str()
-        .unwrap();
+        .aoe();
     let total = str_to_int(ttl);
     let mut current = 0;
-    fs::remove_file(file);
+    let _ = fs::remove_file(file);
 
     {
-        let mut file = File::create(file).unwrap();
+        let mut file = File::create(file).aoe();
 
-        while let Some(chunk) = res.chunk().await.unwrap() {
+        while let Some(chunk) = res.chunk().await.aoe() {
             current += chunk.len();
-            file.write(&*chunk);
+            file.write_all(&*chunk).aoe();
             print!("\rDownloading: {}/{}", current, total);
         }
 
@@ -128,8 +131,8 @@ async fn download(client: &Client, url: &str, file: &str) {
 }
 
 fn get_canonical_path(p: &str) -> String {
-    let p = Path::new(p).canonicalize().unwrap();
-    let path = p.to_str().unwrap();
+    let p = Path::new(p).canonicalize().aoe();
+    let path = p.to_str().expect("expected utf-8 path");
     #[cfg(windows)]
     return format!("{}", &path[4..path.len()]);
     #[cfg(unix)]
@@ -149,16 +152,19 @@ fn find_java() -> String {
     return format!("{}/Contents/Home/bin/java", j);
 }
 
-fn exec(cmd: &mut Command, err_msg: &str) {
-    if let Ok(mut r) = cmd.spawn() {
-        r.wait().unwrap();
-    } else {
-        println!("Error occurred while {}", err_msg);
+fn exec(cmd: &mut Command, msg: &str) {
+    if let Ok(status) = cmd.spawn().and_then(|mut c| c.wait()) {
+        if status.success() {
+            return;
+        }
     }
+    println!("Error occurred while {}", msg);
 }
 
 #[tokio::main]
 async fn main() {
+    self::aoe::register();
+
     println!("iTXTech MCL Installer {} [OS: {}]", PROG_VERSION, get_os());
     println!("Licensed under GNU AGPLv3.");
     println!("https://github.com/iTXTech/mcl-installer");
@@ -194,12 +200,12 @@ async fn main() {
     if install_java {
         if Path::new("./java").exists() {
             println!("Deleting \"{}\".", get_canonical_path("java"));
-            fs::remove_dir_all("java");
+            let _ = fs::remove_dir_all("java");
         }
 
         print!("Java version (8-15, default: 11): ");
         let mut ver = str_to_int(&read_line());
-        ver = if ver >= 8 && ver <= 15 { ver } else { 11 };
+        ver = if (8..=15).contains(&ver) { ver } else { 11 };
 
         print!("JRE or JDK (1: JRE, 2: JDK, default: JRE): ");
         let jre = if str_to_int(&read_line()) == 2 {
@@ -225,16 +231,13 @@ async fn main() {
             arch,
             get_os()
         );
-        let resp = get(&client, &url).await;
-        if !resp.is_ok() {
-            println!("Fail to fetch AdoptOpenJDK download list.");
-            exit(1);
-        }
-        let text = resp.unwrap().text().await.unwrap();
-        let lines = text.split("\n");
+        let resp = get(&client, &url)
+            .await
+            .aoe_msg("Fail to fetch AdoptOpenJDK download list");
+        let text = resp.text().await.aoe();
         let pack = format!("OpenJDK{}U-{}", ver, jre);
 
-        for line in lines {
+        for line in text.split('\n') {
             if line.contains(&pack)
                 && line.contains("hotspot")
                 && (line.contains(".zip") || line.contains(".tar.gz"))
@@ -266,14 +269,14 @@ async fn main() {
                         .arg("java.arc")
                         .stdout(Stdio::piped())
                         .spawn()
-                        .unwrap();
+                        .aoe();
                     {
                         let lines = BufReader::new(process.stdout.as_mut().unwrap()).lines();
                         for line in lines {
-                            print!("\rExtracting {}", format!("{}", line.unwrap().trim()));
+                            print!("\rExtracting {}", line.aoe().trim().to_owned());
                         }
                     }
-                    process.wait().unwrap();
+                    process.wait().aoe();
                     println!();
                 }
 
@@ -286,8 +289,8 @@ async fn main() {
                     );
                 }
 
-                fs::remove_file("java.arc").unwrap();
-                fs::rename(java_dir, "java").unwrap();
+                fs::remove_file("java.arc").aoe();
+                fs::rename(java_dir, "java").aoe();
 
                 break;
             }
@@ -295,22 +298,27 @@ async fn main() {
 
         java = find_java();
         println!("Testing Java Executable: {}", java);
-        Command::new(&java).arg("-version").spawn().unwrap().wait();
+        Command::new(&java)
+            .arg("-version")
+            .spawn()
+            .aoe()
+            .wait()
+            .aoe();
         println!();
     }
 
     if Path::new("mcl.jar").exists() {
-        let mut zip = ZipArchive::new(File::open("mcl.jar").unwrap()).unwrap();
+        let mut zip = ZipArchive::new(File::open("mcl.jar").aoe()).aoe();
         let mut buf = String::new();
         zip.by_name("META-INF/MANIFEST.MF")
-            .unwrap()
+            .aoe()
             .read_to_string(&mut buf)
-            .unwrap();
+            .aoe();
         let start = buf.find("\nVersion: ").unwrap();
-        let ver = format!("{}", &buf[start + 10..start + 23]);
-        let hyphen = ver.find("-").unwrap();
-        let major = format!("{}", &ver[0..hyphen]);
-        let rev = format!("{}", &ver[hyphen + 1..ver.len()]);
+        let ver = &buf[start + 10..start + 23].to_string();
+        let hyphen = ver.find('-').unwrap();
+        let major = &ver[0..hyphen].to_string();
+        let rev = &ver[hyphen + 1..ver.len()].to_string();
 
         println!("iTXTech Mirai Console Loader detected.");
         println!("Major Version: {} Revision: {}", major, rev);
@@ -321,10 +329,10 @@ async fn main() {
     println!("Fetching iTXTech MCL Package Info from {}", manifest_url);
     let manifest = get(&client, &manifest_url)
         .await
-        .unwrap()
+        .aoe()
         .json::<Package>()
         .await
-        .unwrap();
+        .aoe();
     println!("{}", manifest.announcement.unwrap());
 
     let latest = manifest
@@ -343,7 +351,7 @@ async fn main() {
         let url = repo.get(&latest).unwrap().archive.as_ref().unwrap();
         download(&client, url, "mcl.zip").await;
         unzip("mcl.zip");
-        fs::remove_file("mcl.zip");
+        let _ = fs::remove_file("mcl.zip");
 
         if install_java {
             #[cfg(windows)]
@@ -352,7 +360,7 @@ async fn main() {
                 fs::write(
                     "mcl.cmd",
                     fs::read_to_string("mcl.cmd")
-                        .unwrap()
+                        .aoe()
                         .replace("set JAVA_BINARY=java", &j),
                 );
             }
@@ -360,12 +368,10 @@ async fn main() {
             #[cfg(unix)]
             if Path::new("mcl").exists() {
                 let j = format!("export JAVA_BINARY=\"{}\"", java);
-                fs::write(
-                    "mcl",
-                    fs::read_to_string("mcl")
-                        .unwrap()
-                        .replace("export JAVA_BINARY=java", &j),
-                );
+                let content = fs::read_to_string("mcl")
+                    .aoe()
+                    .replace("export JAVA_BINARY=java", &j);
+                fs::write("mcl", content).aoe();
                 exec(
                     Command::new("chmod").arg("777").arg("mcl"),
                     "setting permission to mcl",
