@@ -16,7 +16,7 @@ use zip::ZipArchive;
 
 const MIRAI_REPO: &str = "https://gitee.com/peratx/mirai-repo/raw/master";
 
-const PROG_VERSION: &str = "1.0.2";
+const PROG_VERSION: &str = "1.0.3";
 
 fn get_os() -> &'static str {
     #[cfg(target_os = "windows")]
@@ -203,9 +203,9 @@ async fn main() {
             let _ = fs::remove_dir_all("java");
         }
 
-        print!("Java version (8-15, default: 11): ");
+        print!("Java version (8-17, default: 11): ");
         let mut ver = str_to_int(&read_line());
-        ver = if (8..=15).contains(&ver) { ver } else { 11 };
+        ver = if (8..=17).contains(&ver) { ver } else { 11 };
 
         print!("JRE or JDK (1: JRE, 2: JDK, default: JRE): ");
         let jre = if str_to_int(&read_line()) == 2 {
@@ -285,7 +285,7 @@ async fn main() {
                     println!("Extracting Archive...");
                     exec(
                         Command::new("tar").arg("-zxf").arg("java.arc"),
-                        "unarchiving Java",
+                        "decompressing Java",
                     );
                 }
 
