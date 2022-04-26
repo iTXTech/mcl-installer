@@ -125,7 +125,7 @@ jobs:
 
           - os: macos-latest
             strip: true
-            args: --features native-tls
+            args: --features rustls
             target: aarch64-apple-darwin
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-macos-aarch64
 
