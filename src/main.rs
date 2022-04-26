@@ -207,9 +207,9 @@ async fn main() {
             let _ = fs::remove_dir_all("java");
         }
 
-        print!("Java version (8-17, default: 11): ");
+        print!("Java version (8, 11, 17, 18), default: 17): ");
         let mut ver = str_to_int(&read_line());
-        ver = if (8..=17).contains(&ver) { ver } else { 11 };
+        ver = if (8..=20).contains(&ver) { ver } else { 17 };
 
         print!("JRE or JDK (1: JRE, 2: JDK, default: JRE): ");
         let jre = if str_to_int(&read_line()) == 2 {
@@ -226,15 +226,14 @@ async fn main() {
             a.trim()
         };
 
-        println!("Fetching file list for {} version {} on {}", jre, ver, arch);
-
         let url = format!(
-            "https://mirrors.tuna.tsinghua.edu.cn/AdoptOpenJDK/{}/{}/{}/{}/",
+            "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/{}/{}/{}/{}/",
             ver,
             jre,
             arch,
             get_os()
         );
+        println!("Fetching file list for {} version {} on {} from {}", jre, ver, arch, url);
         let resp = get(&client, &url)
             .await
             .aoe_msg("Fail to fetch AdoptOpenJDK download list");

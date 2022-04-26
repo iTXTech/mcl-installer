@@ -94,24 +94,40 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            strip: false
             args: --features rustls
             target: aarch64-unknown-linux-gnu
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-linux-aarch64
 
           - os: ubuntu-latest
+            strip: false
             args: --features rustls
             target: aarch64-linux-android
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-android-aarch64
 
           - os: ubuntu-latest
+            strip: false
             args: --features rustls
             target: arm-unknown-linux-gnueabi
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-linux-arm
 
           - os: ubuntu-latest
+            strip: false
             args: --features rustls
             target: arm-linux-androideabi
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-android-arm
+
+          - os: ubuntu-latest
+            strip: false
+            args: --features rustls
+            target: aarch64-unknown-linux-musl
+            release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-linux-aarch64-musl
+
+          - os: macos-latest
+            strip: true
+            args: --features native-tls
+            target: aarch64-apple-darwin
+            release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-macos-aarch64
 
     steps:
       - name: Checkout code
@@ -136,7 +152,7 @@ jobs:
         uses: svenstaro/upx-action@v2
         with:
           file: ./target/${{ matrix.target }}/release/mcl-installer
-          strip: false
+          strip: ${{ matrix.strip }}
           args: --best --lzma
 
       - name: Upload release assets
