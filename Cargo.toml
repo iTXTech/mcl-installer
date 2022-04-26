@@ -20,8 +20,8 @@ winres = "0.1"
 
 [package.metadata.winres]
 OriginalFilename = "mcl-installer.exe"
-LegalCopyright = "Copyright © 2021 iTX Technologies"
-FileDescription = "Download OpenJDK and iTXTech Mirai Console Loader instantly."
+LegalCopyright = "Copyright © 2021-2022 iTX Technologies"
+FileDescription = "OpenJDK and Mirai Console Loader bootstrapper."
 ProductName = "iTXTech MCL Installer"
 ProductVersion = "1.0.0.0"
 

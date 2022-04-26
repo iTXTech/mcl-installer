@@ -3,6 +3,7 @@ mod aoe;
 use self::aoe::AbortOnError;
 
 use std::collections::HashMap;
+use std::fmt::format;
 use std::fs;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
@@ -14,7 +15,7 @@ use reqwest::{Client, Error, Response};
 use serde::Deserialize;
 use zip::ZipArchive;
 
-const MIRAI_REPO: &str = "https://repo.itxtech.org";
+const MIRAI_REPO: &str = "repo.itxtech.org";
 
 const PROG_VERSION: &str = "1.0.4";
 
@@ -164,6 +165,9 @@ fn exec(cmd: &mut Command, msg: &str) {
 #[tokio::main]
 async fn main() {
     self::aoe::register();
+
+    let args = std::env::args().nth(1);
+    let repo = if args.is_none() { MIRAI_REPO.to_string() } else { args.unwrap().to_string() };
 
     println!("iTXTech MCL Installer {} [OS: {}]", PROG_VERSION, get_os());
     println!("Licensed under GNU AGPLv3.");
@@ -325,7 +329,7 @@ async fn main() {
         println!();
     }
 
-    let manifest_url = format!("{}/org/itxtech/mcl/package.json", MIRAI_REPO);
+    let manifest_url = format!("https://{}/org/itxtech/mcl/package.json", repo);
     println!("Fetching iTXTech MCL Package Info from {}", manifest_url);
     let manifest = get(&client, &manifest_url)
         .await

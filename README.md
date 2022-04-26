@@ -43,6 +43,13 @@ The latest stable version of iTXTech MCL is x.x.x 获取最新MCL并询问是否
 Would you like to download it? (Y/N, default: Y) Y：下载，N：取消
 ```
 
+## 使用 [`Mirai Repo`](https://github.com/project-mirai/mirai-repo-mirror) 镜像
+
+```bash
+# MCL Installer 接受第一个参数为 Mirai Repo 地址，强制使用HTTPS协议，不以 / 结尾
+$ ./mcl-installer mirai.mamoe.net/assets/mcl
+```
+
 ## 构建 `mcl-installer`
 
 * `mcl-installer` 使用 [rust](https://www.rust-lang.org/) 编写，需要调用 `cargo` 构建。
