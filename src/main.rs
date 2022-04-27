@@ -17,7 +17,7 @@ use zip::ZipArchive;
 
 const MIRAI_REPO: &str = "repo.itxtech.org";
 
-const PROG_VERSION: &str = "1.0.5";
+const PROG_VERSION: &str = "1.0.6";
 
 fn get_os() -> &'static str {
     #[cfg(target_os = "windows")]

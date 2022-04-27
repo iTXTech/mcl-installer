@@ -41,7 +41,7 @@ jobs:
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-linux-amd64
 
           - os: macos-latest
-            file: ./target/release/mcl-installer]
+            file: ./target/release/mcl-installer
             args: --features native-tls
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-macos-amd64
 
