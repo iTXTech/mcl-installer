@@ -30,3 +30,4 @@ opt-level = 'z'
 lto = true
 panic = "abort"
 codegen-units = 1
+strip = "symbols"

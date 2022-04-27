@@ -37,19 +37,16 @@ jobs:
         include:
           - os: ubuntu-latest
             file: ./target/release/mcl-installer
-            strip: true
             args: --features rustls
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-linux-amd64
 
           - os: macos-latest
-            file: ./target/release/mcl-installer
-            strip: true
+            file: ./target/release/mcl-installer]
             args: --features native-tls
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-macos-amd64
 
           - os: windows-latest
             file: ./target/release/mcl-installer.exe
-            strip: false
             args: --features native-tls
             release_name: mcl-installer-${{ needs.create_release.outputs.commit_id }}-windows-amd64.exe
     steps:
@@ -73,7 +70,7 @@ jobs:
         uses: svenstaro/upx-action@v2
         with:
           file: ${{ matrix.file }}
-          strip: ${{ matrix.strip }}
+          strip: false
           args: --best --lzma
 
       - name: Upload release assets
@@ -183,13 +180,6 @@ jobs:
         with:
           command: build
           args: ${{ matrix.args }} --release --target ${{ matrix.target }}
-
-      - name: Compress binaries
-        uses: svenstaro/upx-action@v2
-        with:
-          file: ./target/${{ matrix.target }}/release/mcl-installer
-          strip: true
-          args: --help
 
       - name: Upload release assets
         uses: actions/upload-release-asset@v1
