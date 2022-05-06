@@ -12,10 +12,10 @@
 ### 以`Linux`和`macOS`为例
 
 ```bash
-$ cd 你想要安装 iTXTech MCL 的目录
-$ curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.6/mcl-installer-1.0.6-linux-amd64 # 如果是macOS，就将链接中的 linux 修改为 macos
-$ chmod +x mcl-installer-1.0.6-linux-amd64
-$ ./mcl-installer-1.0.6-linux-amd64
+cd 你想要安装 iTXTech MCL 的目录
+curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.6/mcl-installer-1.0.6-linux-amd64 # 如果是macOS，就将链接中的 linux 修改为 macos
+chmod +x mcl-installer-1.0.6-linux-amd64
+./mcl-installer-1.0.6-linux-amd64
 ```
 
 ### 以`Windows`为例
@@ -43,7 +43,7 @@ Would you like to download it? (Y/N, default: Y) Y：下载，N：取消
 
 ```bash
 # MCL Installer 接受第一个参数为 Mirai Repo 地址，强制使用HTTPS协议，不以 / 结尾
-$ ./mcl-installer mirai.mamoe.net/assets/mcl
+./mcl-installer mirai.mamoe.net/assets/mcl
 ```
 
 ## 构建 `mcl-installer`
@@ -51,14 +51,14 @@ $ ./mcl-installer mirai.mamoe.net/assets/mcl
 * `mcl-installer` 使用 [rust](https://www.rust-lang.org/) 编写，需要调用 `cargo` 构建。
 
 ```bash
-$ git clone https://github.com/iTXTech/mcl-installer.git
-$ cd mcl-installer
+git clone https://github.com/iTXTech/mcl-installer.git
+cd mcl-installer
 # native-tls => 使用系统的 OpenSSL，rustls => 使用 rustls。
 # --release 用于构建优化过的二进制文件，如需要进行调试请去除该参数。
-$ cargo build --features native-tls --release
-$ cd target/release
-$ strip mcl-installer # strip 可减小可执行文件大小
-$ upx --best --lzma mcl-installer # 使用 upx 压缩可进一步缩小可执行文件大小
+cargo build --features native-tls --release
+cd target/release
+strip mcl-installer # strip 可减小可执行文件大小
+upx --best --lzma mcl-installer # 使用 upx 压缩可进一步缩小可执行文件大小
 ```
 
 ## 开源许可证
