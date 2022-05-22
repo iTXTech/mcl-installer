@@ -11,11 +11,13 @@
 
 ### 以`Linux`和`macOS`为例
 
+**请优先选择以`musl`结尾的二进制文件，无外部依赖，兼容性更好。**
+
 ```bash
 cd 你想要安装 iTXTech MCL 的目录
-curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.6/mcl-installer-1.0.6-linux-amd64 # 如果是macOS，就将链接中的 linux 修改为 macos
-chmod +x mcl-installer-1.0.6-linux-amd64
-./mcl-installer-1.0.6-linux-amd64
+curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.6/mcl-installer-1.0.7-linux-amd64-musl # 如果是macOS，就将链接中的 linux 修改为 macos
+chmod +x mcl-installer-1.0.7-linux-amd64-musl
+./mcl-installer-1.0.7-linux-amd64
 ```
 
 ### 以`Windows`为例

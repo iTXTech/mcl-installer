@@ -15,9 +15,9 @@ use reqwest::{Client, Error, Response};
 use serde::Deserialize;
 use zip::ZipArchive;
 
-const MIRAI_REPO: &str = "repo.itxtech.org";
+const MIRAI_REPO: &str = "mirai.mamoe.net/assets/mcl";
 
-const PROG_VERSION: &str = "1.0.6";
+const PROG_VERSION: &str = "1.0.7";
 
 fn get_os() -> &'static str {
     #[cfg(target_os = "windows")]
