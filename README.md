@@ -15,7 +15,7 @@
 
 ```bash
 cd 你想要安装 iTXTech MCL 的目录
-curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.6/mcl-installer-1.0.7-linux-amd64-musl # 如果是macOS，就将链接中的 linux 修改为 macos
+curl -LJO https://github.com/iTXTech/mcl-installer/releases/download/v1.0.7/mcl-installer-1.0.7-linux-amd64-musl # 如果是macOS，就将链接中的 linux 修改为 macos
 chmod +x mcl-installer-1.0.7-linux-amd64-musl
 ./mcl-installer-1.0.7-linux-amd64
 ```
