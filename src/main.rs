@@ -207,9 +207,9 @@ async fn main() {
             let _ = fs::remove_dir_all("java");
         }
 
-        print!("Java version (8, 11, 17, 18), default: 17): ");
+        print!("Java version (11, 17, 18), default: 17): ");
         let mut ver = str_to_int(&read_line());
-        ver = if (8..=20).contains(&ver) { ver } else { 17 };
+        ver = if (11..=20).contains(&ver) { ver } else { 17 };
 
         print!("JRE or JDK (1: JRE, 2: JDK, default: JRE): ");
         let jre = if str_to_int(&read_line()) == 2 {
