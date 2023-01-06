@@ -32,7 +32,7 @@ chmod +x mcl-installer-1.0.7-linux-amd64-musl
 Would you like to install Java? (Y/N, default: Y)
 是否安装Java，如果上面的检测结果输出的Java版本大于11即可，可输入N跳过安装，否则必须安装Java
 
-Java version (8, 11, 17, 18, default: 17): 选择Java版本安装，默认为Java 17
+Java version (11, 17, 18, default: 17): 选择Java版本安装，默认为Java 17
 JRE or JDK (1: JRE, 2: JDK, default: JRE): 选择JRE还是JDK安装，默认为JRE
 Binary Architecture (default: x64): 选择架构安装，默认x64，Apple Silicon 请选择 aarch64
 如果操作系统为Windows并且需要使用 mirai-native，请选择 x32（而不是i386等其他名字）
